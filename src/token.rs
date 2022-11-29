@@ -1,9 +1,8 @@
-
 #![allow(clippy::upper_case_acronyms)]
 
 use core::fmt;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
     // Single-character tokens
     LeftParen,
@@ -83,6 +82,8 @@ impl fmt::Display for Token {
 pub enum Literal {
     String(String),
     Number(f64),
+    Boolean(bool),
+    Nil,
 }
 
 impl fmt::Display for Literal {
@@ -90,6 +91,8 @@ impl fmt::Display for Literal {
         match self {
             Literal::String(s) => write!(f, "{}", s),
             Literal::Number(n) => write!(f, "{}", n),
+            Literal::Boolean(b) => write!(f, "{}", b),
+            Literal::Nil => write!(f, "nil"),
         }
     }
 }

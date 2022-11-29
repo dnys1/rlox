@@ -12,25 +12,25 @@ pub enum Expr {
 
 #[derive(Debug, Clone)]
 pub struct BinaryExpr {
-    left: Box<Expr>,
-    operator: Token,
-    right: Box<Expr>,
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
 }
 
 #[derive(Debug, Clone)]
 pub struct GroupingExpr {
-    expression: Box<Expr>,
+    pub expression: Box<Expr>,
 }
 
 #[derive(Debug, Clone)]
 pub struct LiteralExpr {
-    value: Option<Literal>,
+    pub value: Option<Literal>,
 }
 
 #[derive(Debug, Clone)]
 pub struct UnaryExpr {
-    operator: Token,
-    right: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
 }
 
 impl Expr {

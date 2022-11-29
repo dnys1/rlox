@@ -1,4 +1,5 @@
 use crate::token::*;
+use crate::Result;
 use std::collections::HashMap;
 use std::error;
 use std::fmt;
@@ -11,8 +12,6 @@ pub struct Scanner {
     current: usize,
     line: usize,
 }
-
-type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
 lazy_static! {
     static ref RESERVED_WORDS: HashMap<&'static str, TokenType> = {
@@ -226,7 +225,18 @@ impl Scanner {
             None => TokenType::Identifier,
         };
 
-        self.add_token(typ);
+        match typ {
+            TokenType::True => {
+                self.add_token_literal(typ, Some(Literal::Boolean(true)));
+            }
+            TokenType::False => {
+                self.add_token_literal(typ, Some(Literal::Boolean(false)));
+            }
+            TokenType::Nil => {
+                self.add_token_literal(typ, Some(Literal::Nil));
+            }
+            typ => self.add_token(typ),
+        }
     }
 
     fn multiline_comment(&mut self) -> Result<()> {
