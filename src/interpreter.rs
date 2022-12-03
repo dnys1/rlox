@@ -146,10 +146,7 @@ impl ExpressionVisitor for Interpreter {
                 }
             }
             TokenType::Bang => Ok(Literal::Boolean(!self.is_truthy(&right))),
-            _ => Err(RuntimeError::new(
-                expr.operator.clone(),
-                "Invalid operator for unary expression",
-            )),
+            _ => unreachable!(),
         }
     }
 }
