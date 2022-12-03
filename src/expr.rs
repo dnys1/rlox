@@ -24,7 +24,7 @@ pub struct GroupingExpr {
 
 #[derive(Debug, Clone)]
 pub struct LiteralExpr {
-    pub value: Option<Literal>,
+    pub value: Literal,
 }
 
 #[derive(Debug, Clone)]
@@ -88,10 +88,7 @@ impl ExpressionVisitor for &Printer {
     }
 
     fn visit_literal(&self, expr: &LiteralExpr) -> Self::Output {
-        match &expr.value {
-            Some(literal) => format!("{}", literal),
-            None => String::from("nil"),
-        }
+        format!("{}", &expr.value)
     }
 
     fn visit_unary(&self, expr: &UnaryExpr) -> Self::Output {
@@ -115,13 +112,13 @@ mod tests {
             left: Box::new(Expr::Unary(UnaryExpr {
                 operator: Token::new(TokenType::Minus, "-".into(), None, 1),
                 right: Box::new(Expr::Literal(LiteralExpr {
-                    value: Some(Literal::Number(123.0)),
+                    value: Literal::Number(123.0),
                 })),
             })),
             operator: Token::new(TokenType::Star, "*".into(), None, 1),
             right: Box::new(Expr::Grouping(GroupingExpr {
                 expression: Box::new(Expr::Literal(LiteralExpr {
-                    value: Some(Literal::Number(45.67)),
+                    value: Literal::Number(45.67),
                 })),
             })),
         });

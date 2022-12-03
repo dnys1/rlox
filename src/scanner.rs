@@ -37,7 +37,7 @@ lazy_static! {
 }
 
 impl Scanner {
-    pub fn new(source: String) -> Self {
+    pub fn new(source: &str) -> Self {
         let chars = source.chars().collect();
         Scanner {
             source: chars,

@@ -117,9 +117,9 @@ impl Parser {
             | TokenType::True
             | TokenType::False
             | TokenType::Nil => Expr::Literal(LiteralExpr {
-                value: token.literal,
+                value: token.literal.unwrap_or(Literal::Nil),
             }),
-            _ => return Err(ParseError::new(token.clone(), "expected expression").into()),
+            _ => return Err(ParseError::new(token, "expected expression").into()),
         };
         Ok(expr)
     }
@@ -159,6 +159,7 @@ impl Parser {
         self.peek().typ == TokenType::EOF
     }
 
+    #[allow(dead_code)]
     fn synchronize(&mut self) {
         self.advance();
 
