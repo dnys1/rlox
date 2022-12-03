@@ -4,8 +4,9 @@ extern crate lazy_static;
 use std::{
     env,
     error::Error,
+    fs,
     io::{stdin, stdout, Write},
-    process::exit, fs,
+    process::exit,
 };
 
 use parser::Parser;

@@ -34,7 +34,7 @@ pub struct UnaryExpr {
 }
 
 impl Expr {
-    pub fn accept<Visitor: ExpressionVisitor>(&self, visitor: Visitor) -> Visitor::Output {
+    pub fn accept<Visitor: ExpressionVisitor>(&self, visitor: &Visitor) -> Visitor::Output {
         visitor.visit(self)
     }
 }
@@ -73,7 +73,7 @@ impl Printer {
     }
 }
 
-impl ExpressionVisitor for &Printer {
+impl ExpressionVisitor for Printer {
     type Output = String;
 
     fn visit_binary(&self, expr: &BinaryExpr) -> Self::Output {

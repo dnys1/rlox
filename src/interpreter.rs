@@ -3,15 +3,14 @@ use std::error;
 
 use crate::{
     expr::{self, ExpressionVisitor},
-    token::{Literal, TokenType, self},
+    token::{self, Literal, TokenType},
 };
 
 pub fn evaluate(expr: &expr::Expr) -> Result<Literal, RuntimeError> {
-    expr.accept(Interpreter{})
+    expr.accept(&Interpreter {})
 }
 
-#[derive(Clone, Copy)]
-struct Interpreter {}
+struct Interpreter;
 
 impl Interpreter {
     fn is_truthy(&self, literal: &Literal) -> bool {
@@ -27,8 +26,8 @@ impl ExpressionVisitor for Interpreter {
     type Output = Result<Literal, RuntimeError>;
 
     fn visit_binary(&self, expr: &expr::BinaryExpr) -> Self::Output {
-        let left = expr.left.accept(*self)?;
-        let right = expr.right.accept(*self)?;
+        let left = expr.left.accept(self)?;
+        let right = expr.right.accept(self)?;
         match expr.operator.typ {
             TokenType::Minus => {
                 if let (Literal::Number(left), Literal::Number(right)) = (left, right) {
@@ -39,7 +38,7 @@ impl ExpressionVisitor for Interpreter {
                         "Operands must be numbers.",
                     ))
                 }
-            },
+            }
             TokenType::Slash => {
                 if let (Literal::Number(left), Literal::Number(right)) = (left, right) {
                     if right == 0.0 {
@@ -56,7 +55,7 @@ impl ExpressionVisitor for Interpreter {
                         "Operands must be numbers.",
                     ))
                 }
-            },
+            }
             TokenType::Star => {
                 if let (Literal::Number(left), Literal::Number(right)) = (left, right) {
                     Ok(Literal::Number(left * right))
@@ -66,7 +65,7 @@ impl ExpressionVisitor for Interpreter {
                         "Operands must be numbers.",
                     ))
                 }
-            },
+            }
             TokenType::Plus => {
                 if let (Literal::Number(left), Literal::Number(right)) = (&left, &right) {
                     Ok(Literal::Number(left + right))
@@ -78,7 +77,7 @@ impl ExpressionVisitor for Interpreter {
                         "Operands must be two numbers or two strings.",
                     ))
                 }
-            },
+            }
             TokenType::Greater => {
                 if let (Literal::Number(left), Literal::Number(right)) = (left, right) {
                     Ok(Literal::Boolean(left > right))
@@ -88,7 +87,7 @@ impl ExpressionVisitor for Interpreter {
                         "Operands must be numbers.",
                     ))
                 }
-            },
+            }
             TokenType::GreaterEqual => {
                 if let (Literal::Number(left), Literal::Number(right)) = (left, right) {
                     Ok(Literal::Boolean(left >= right))
@@ -98,7 +97,7 @@ impl ExpressionVisitor for Interpreter {
                         "Operands must be numbers.",
                     ))
                 }
-            },
+            }
             TokenType::Less => {
                 if let (Literal::Number(left), Literal::Number(right)) = (left, right) {
                     Ok(Literal::Boolean(left < right))
@@ -108,7 +107,7 @@ impl ExpressionVisitor for Interpreter {
                         "Operands must be numbers.",
                     ))
                 }
-            },
+            }
             TokenType::LessEqual => {
                 if let (Literal::Number(left), Literal::Number(right)) = (left, right) {
                     Ok(Literal::Boolean(left <= right))
@@ -118,7 +117,7 @@ impl ExpressionVisitor for Interpreter {
                         "Operands must be numbers.",
                     ))
                 }
-            },
+            }
             TokenType::BangEqual => Ok(Literal::Boolean(left != right)),
             TokenType::EqualEqual => Ok(Literal::Boolean(left == right)),
             _ => unreachable!(),
@@ -126,7 +125,7 @@ impl ExpressionVisitor for Interpreter {
     }
 
     fn visit_grouping(&self, expr: &expr::GroupingExpr) -> Self::Output {
-        expr.expression.accept(*self)
+        expr.expression.accept(self)
     }
 
     fn visit_literal(&self, expr: &expr::LiteralExpr) -> Self::Output {
@@ -134,7 +133,7 @@ impl ExpressionVisitor for Interpreter {
     }
 
     fn visit_unary(&self, expr: &expr::UnaryExpr) -> Self::Output {
-        let right = expr.right.accept(*self)?;
+        let right = expr.right.accept(self)?;
         match expr.operator.typ {
             TokenType::Minus => {
                 if let Literal::Number(right) = right {
@@ -171,6 +170,10 @@ impl error::Error for RuntimeError {}
 
 impl fmt::Display for RuntimeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Runtime error: {}\n[line {}]", self.message, self.token.line)
+        write!(
+            f,
+            "Runtime error: {}\n[line {}]",
+            self.message, self.token.line
+        )
     }
 }
