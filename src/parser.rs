@@ -1,5 +1,6 @@
 use std::{error, fmt};
 
+use crate::stmt::Stmt;
 use crate::Result;
 use crate::{expr::*, token::*};
 
@@ -13,12 +14,90 @@ impl Parser {
         Parser { tokens, current: 0 }
     }
 
-    pub fn parse(&mut self) -> Result<Expr> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<Stmt>> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            statements.push(self.declaration()?);
+        }
+        Ok(statements)
+    }
+
+    fn declaration(&mut self) -> Result<Stmt> {
+        if self.matches_token(TokenType::Var) {
+            self.var_declaration().or_else(|_| {
+                self.synchronize();
+                Ok(Stmt::Expression(Expr::Literal(LiteralExpr {
+                    value: Literal::Nil,
+                })))
+            })
+        } else {
+            self.statement()
+        }
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt> {
+        let name = self.consume(TokenType::Identifier, "Expected variable name.")?;
+        let initializer = if self.matches_token(TokenType::Equal) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+        self.consume(
+            TokenType::Semicolon,
+            "Expected ';' after variable declaration.",
+        )?;
+        Ok(Stmt::Var(name, initializer))
+    }
+
+    fn statement(&mut self) -> Result<Stmt> {
+        if self.matches_token(TokenType::Print) {
+            self.print_statement()
+        } else if self.matches_token(TokenType::LeftBrace) {
+            self.block()
+        } else {
+            self.expression_statement()
+        }
+    }
+
+    fn block(&mut self) -> Result<Stmt> {
+        let mut statements = Vec::new();
+        while !self.check_token(TokenType::RightBrace) && !self.is_at_end() {
+            statements.push(self.declaration()?);
+        }
+        self.consume(TokenType::RightBrace, "Expected '}' after block.")?;
+        Ok(Stmt::Block(statements))
+    }
+
+    fn print_statement(&mut self) -> Result<Stmt> {
+        let value = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after print statement.")?;
+        Ok(Stmt::Print(value))
+    }
+
+    fn expression_statement(&mut self) -> Result<Stmt> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expected ';' after expression.")?;
+        Ok(Stmt::Expression(expr))
     }
 
     fn expression(&mut self) -> Result<Expr> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr> {
+        let expr = self.equality()?;
+        if self.check_token(TokenType::Equal) {
+            let equals = self.advance();
+            let value = self.assignment()?;
+            if let Expr::Variable(var) = expr {
+                return Ok(Expr::Assign(AssignExpr {
+                    name: var.name,
+                    value: Box::new(value),
+                }));
+            }
+            eprintln!("{}", ParseError::new(equals, "Invalid assignment target"));
+        }
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr> {
@@ -119,6 +198,7 @@ impl Parser {
             | TokenType::Nil => Expr::Literal(LiteralExpr {
                 value: token.literal.unwrap_or(Literal::Nil),
             }),
+            TokenType::Identifier => Expr::Variable(VariableExpr { name: token }),
             _ => return Err(ParseError::new(token, "expected expression").into()),
         };
         Ok(expr)
@@ -128,11 +208,20 @@ impl Parser {
         &self.tokens[self.current]
     }
 
-    fn check(&self, typ: TokenType) -> bool {
+    fn check_token(&self, typ: TokenType) -> bool {
         if self.is_at_end() {
             false
         } else {
             self.peek().typ == typ
+        }
+    }
+
+    fn matches_token(&mut self, typ: TokenType) -> bool {
+        if self.check_token(typ) {
+            self.advance();
+            true
+        } else {
+            false
         }
     }
 
@@ -144,7 +233,7 @@ impl Parser {
     }
 
     fn consume(&mut self, typ: TokenType, msg: &'static str) -> Result<Token> {
-        if self.check(typ) {
+        if self.check_token(typ) {
             Ok(self.advance())
         } else {
             Err(ParseError::new(self.peek().clone(), msg).into())
@@ -159,12 +248,11 @@ impl Parser {
         self.peek().typ == TokenType::EOF
     }
 
-    #[allow(dead_code)]
     fn synchronize(&mut self) {
         self.advance();
 
         while !self.is_at_end() {
-            if self.previous().typ == TokenType::SemiColon {
+            if self.previous().typ == TokenType::Semicolon {
                 return;
             }
 

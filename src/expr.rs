@@ -8,6 +8,8 @@ pub enum Expr {
     Grouping(GroupingExpr),
     Literal(LiteralExpr),
     Unary(UnaryExpr),
+    Variable(VariableExpr),
+    Assign(AssignExpr),
 }
 
 #[derive(Debug, Clone)]
@@ -33,8 +35,19 @@ pub struct UnaryExpr {
     pub right: Box<Expr>,
 }
 
+#[derive(Debug, Clone)]
+pub struct VariableExpr {
+    pub name: Token,
+}
+
+#[derive(Debug, Clone)]
+pub struct AssignExpr {
+    pub name: Token,
+    pub value: Box<Expr>,
+}
+
 impl Expr {
-    pub fn accept<Visitor: ExpressionVisitor>(&self, visitor: &Visitor) -> Visitor::Output {
+    pub fn accept<Visitor: ExpressionVisitor>(&self, visitor: &mut Visitor) -> Visitor::Output {
         visitor.visit(self)
     }
 }
@@ -42,25 +55,29 @@ impl Expr {
 pub trait ExpressionVisitor {
     type Output;
 
-    fn visit(&self, expr: &Expr) -> Self::Output {
+    fn visit(&mut self, expr: &Expr) -> Self::Output {
         match expr {
             Expr::Binary(expr) => self.visit_binary(expr),
             Expr::Grouping(expr) => self.visit_grouping(expr),
             Expr::Literal(expr) => self.visit_literal(expr),
             Expr::Unary(expr) => self.visit_unary(expr),
+            Expr::Variable(expr) => self.visit_variable(expr),
+            Expr::Assign(expr) => self.visit_assign(expr),
         }
     }
 
-    fn visit_binary(&self, expr: &BinaryExpr) -> Self::Output;
-    fn visit_grouping(&self, expr: &GroupingExpr) -> Self::Output;
-    fn visit_literal(&self, expr: &LiteralExpr) -> Self::Output;
-    fn visit_unary(&self, expr: &UnaryExpr) -> Self::Output;
+    fn visit_binary(&mut self, expr: &BinaryExpr) -> Self::Output;
+    fn visit_grouping(&mut self, expr: &GroupingExpr) -> Self::Output;
+    fn visit_literal(&mut self, expr: &LiteralExpr) -> Self::Output;
+    fn visit_unary(&mut self, expr: &UnaryExpr) -> Self::Output;
+    fn visit_variable(&mut self, expr: &VariableExpr) -> Self::Output;
+    fn visit_assign(&mut self, expr: &AssignExpr) -> Self::Output;
 }
 
 struct Printer;
 
 impl Printer {
-    fn parenthesize(&self, name: String, exprs: Vec<Expr>) -> String {
+    fn parenthesize(&mut self, name: String, exprs: Vec<Expr>) -> String {
         let mut builder = String::new();
         builder += "(";
         builder += name.as_str();
@@ -76,29 +93,37 @@ impl Printer {
 impl ExpressionVisitor for Printer {
     type Output = String;
 
-    fn visit_binary(&self, expr: &BinaryExpr) -> Self::Output {
+    fn visit_binary(&mut self, expr: &BinaryExpr) -> Self::Output {
         self.parenthesize(
             expr.operator.lexeme.clone(),
             vec![*expr.left.clone(), *expr.right.clone()],
         )
     }
 
-    fn visit_grouping(&self, expr: &GroupingExpr) -> Self::Output {
+    fn visit_grouping(&mut self, expr: &GroupingExpr) -> Self::Output {
         self.parenthesize(String::from("group"), vec![*expr.expression.clone()])
     }
 
-    fn visit_literal(&self, expr: &LiteralExpr) -> Self::Output {
+    fn visit_literal(&mut self, expr: &LiteralExpr) -> Self::Output {
         format!("{}", &expr.value)
     }
 
-    fn visit_unary(&self, expr: &UnaryExpr) -> Self::Output {
+    fn visit_unary(&mut self, expr: &UnaryExpr) -> Self::Output {
         self.parenthesize(expr.operator.lexeme.clone(), vec![*expr.right.clone()])
+    }
+
+    fn visit_variable(&mut self, expr: &VariableExpr) -> Self::Output {
+        expr.name.lexeme.clone()
+    }
+
+    fn visit_assign(&mut self, expr: &AssignExpr) -> Self::Output {
+        self.parenthesize(expr.name.lexeme.clone(), vec![*expr.value.clone()])
     }
 }
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.accept(&Printer {}))
+        write!(f, "{}", self.accept(&mut Printer))
     }
 }
 
