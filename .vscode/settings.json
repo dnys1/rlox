@@ -1,3 +1,4 @@
 {
-    "rust-analyzer.inlayHints.chainingHints.enable": true
+    "rust-analyzer.inlayHints.chainingHints.enable": true,
+    "editor.formatOnSave": true
 }
